@@ -23,10 +23,15 @@ contract OpenEvents is OpenTicket, Pausable {
         uint256 seats;
         uint256 sold;
         bool vipAvailable;
-        uint256 vipPrice;
-        uint256 vipTicketSupply;
-        uint256 vipSold;
         string ipfs;
+    }
+
+    struct VIPSettings {
+        uint256 price;
+        uint256 seats;
+        uint256 sold;
+        bool bottleService;
+        bool exclusive;
     }
 
     OpenEvent[] private openEvents;
@@ -34,18 +39,28 @@ contract OpenEvents is OpenTicket, Pausable {
     // Mapping from owner to list of owned events IDs.
     mapping(address => uint256[]) private ownedEvents;
 
+    mapping(uint256 => VIPSettings[]) private eventVIPSettings;
+
+    // mapping(uint256 => mapping(uint256 => uint256))
+    // private eventIdToVIPIdToEventVIPSettingsIndex;
+
     mapping(address => uint256) internal adminEvents;
 
     mapping(address => mapping(uint256 => uint256)) internal promoterEventComps;
 
     event CreatedEvent(address indexed owner, uint256 eventId);
+    event CreatedVIPPackage(uint256 eventId, uint256 vipId);
     event SoldTicket(
         address indexed buyer,
         uint256 indexed eventId,
         uint256 ticketId,
-        bool vip
+        uint256 vip
     );
-    event RedeemedTicket(uint256 indexed eventId, uint256 ticketId, bool vip);
+    event RedeemedTicket(
+        uint256 indexed eventId,
+        uint256 ticketId,
+        uint256 vip
+    );
 
     // event MintedTicket(address indexed buyer, uint indexed eventId, uint ticketId, bool vip);
 
@@ -141,18 +156,26 @@ contract OpenEvents is OpenTicket, Pausable {
         _;
     }
 
+    modifier eventVIPExists(uint256 _eventId, uint256 _vipId) {
+        require(eventVIPSettings[_eventId].length.sub(1) >= _vipId);
+        _;
+    }
+
+    // uint256 _qty
+    //  * @param _qty - Quantity of VIP tickets to confirm availability of.
+
     /**
      * @dev Throws if there are not enough VIP tickets remaining in vipTicketSupply for a given event.
      * @param _eventId - ID of the event to validate VIP ticket supply for.
-     * @param _qty - Quantity of VIP tickets to confirm availability of.
      * @return uint - Number of remaining VIP tickets.
      **/
-    function vipRemaining(uint256 _eventId, uint256 _qty)
+    function vipRemaining(uint256 _eventId, uint256 _vipId)
         public
         view
         returns (uint256)
     {
-        return openEvents[_eventId].vipTicketSupply.sub(_qty);
+        VIPSettings memory _vipSettings = eventVIPSettings[_eventId][_vipId];
+        return _vipSettings.seats.sub(_vipSettings.sold);
     }
 
     /**
@@ -164,8 +187,6 @@ contract OpenEvents is OpenTicket, Pausable {
      * @param _price - The ticket price.
      * @param _seats - If event has limited seats, says how much tickets can be sold.
      * @param _vipAvailable - If true event has vip available.
-     * @param _vipPrice - The VIP ticket price.
-     * @param _vipTicketSupply - If event has limited seats, says how much tickets can be sold.
      * @param _ipfs - The IPFS hash containing additional information about the event.
      * @notice Requires that the events time is in the future.
      * @notice Requires that the contract is not paused.
@@ -178,8 +199,6 @@ contract OpenEvents is OpenTicket, Pausable {
         uint256 _price,
         uint256 _seats,
         bool _vipAvailable,
-        uint256 _vipPrice,
-        uint256 _vipTicketSupply,
         string _ipfs
     ) public goodTime(_time) whenNotPaused {
         OpenEvent memory _event = OpenEvent({
@@ -192,14 +211,43 @@ contract OpenEvents is OpenTicket, Pausable {
             seats: _seats,
             sold: 0,
             vipAvailable: _vipAvailable,
-            vipPrice: _vipPrice,
-            vipTicketSupply: _vipTicketSupply,
-            vipSold: 0,
             ipfs: _ipfs
         });
         uint256 _eventId = openEvents.push(_event).sub(1);
         ownedEvents[msg.sender].push(_eventId);
         emit CreatedEvent(msg.sender, _eventId);
+    }
+
+    /**
+     * @dev Function to set VIP package settings for event.
+     * @param _eventId - ID of event.
+     * @param _price - Price of VIP ticket in ETH.
+     * @param _seats - Number of seats/tickets available.
+     * @param _sold - Number of seats/tickets sold.
+     * @param _bottleService - Boolean indicating package includes bottle service.
+     * @param _exclusive - Boolean indicating that a ticket holder is eligible to receive package exclusive.
+     */
+    function addVIPPackage(
+        uint256 _eventId,
+        uint256 _price,
+        uint256 _seats,
+        uint256 _sold,
+        bool _bottleService,
+        bool _exclusive
+    ) public onlyEventOwner(_eventId) {
+        VIPSettings memory _vipPackage = VIPSettings({
+            price: _price,
+            seats: _seats,
+            sold: _sold,
+            bottleService: _bottleService,
+            exclusive: _exclusive
+        });
+        eventVIPSettings[_eventId].push(_vipPackage);
+        uint256 _vipId = eventVIPSettings[_eventId].length.sub(1);
+        // eventVIPPackages[_eventId][
+        // _vipId
+        // ] = _vipPackage;
+        emit CreatedVIPPackage(_eventId, _vipId);
     }
 
     /**
@@ -306,30 +354,34 @@ contract OpenEvents is OpenTicket, Pausable {
     /**
      * @dev Function to show VIP information for the event.
      * @param _eventId - Event ID.
+     * @param _eventId - Event ID.
      * @notice Requires that the events exist.
-     * @return vipAvailable bool - If true event has vip available.
-     * @return vipPrice uint - The VIP ticket price.
-     * @return vipTicketSupply uint - Says how much tickets can be sold.
-     * @return vipSold uint - If event has limited seats, says how much tickets can be sold.
+     * @return price uint256 - If true event has vip available.
+     * @return seats uint256 - The VIP ticket price.
+     * @return sold uint256 - Says how much tickets can be sold.
+     * @return bottleService bool - If event has limited seats, says how much tickets can be sold.
+     * @return exclusive bool - If event has limited seats, says how much tickets can be sold.
      * @return ipfs string - The IPFS hash containing additional information about the event.
      **/
-    function getEventVIP(uint256 _eventId)
+    function getEventVIP(uint256 _eventId, uint256 _vipId)
         public
         view
         eventExist(_eventId)
         returns (
-            bool vipAvailable,
-            uint256 vipPrice,
-            uint256 vipTicketSupply,
-            uint256 vipSold
+            uint256 price,
+            uint256 seats,
+            uint256 sold,
+            bool bottleService,
+            bool exclusive
         )
     {
-        OpenEvent memory _event = openEvents[_eventId];
+        VIPSettings memory _vipPackage = eventVIPSettings[_eventId][_vipId];
         return (
-            _event.vipAvailable,
-            _event.vipPrice,
-            _event.vipTicketSupply,
-            _event.vipSold
+            _vipPackage.price,
+            _vipPackage.seats,
+            _vipPackage.sold,
+            _vipPackage.bottleService,
+            _vipPackage.exclusive
         );
     }
 
@@ -341,23 +393,19 @@ contract OpenEvents is OpenTicket, Pausable {
         return openEvents.length;
     }
 
+    // uint256 _qty
+    //  * @param _qty - Ticket quantity to mint.
+
     /**
      * @dev Function to grant ticket to address on guest list.
      * @param _guest - The address of guest list member.
      * @param _eventId - The ID of event.
-     * @param _vip - Is ticket VIP?
-     * @param _qty - Ticket quantity to mint.
      * @notice Requires that the events exist.
      * @notice Requires that the events time is in the future.
      * @notice Requires that the contract is not paused.
      * @notice Reverts if event has limited seats and an amount of sold tickets bigger then the number of seats.
      */
-    function grantTicket(
-        address _guest,
-        uint256 _eventId,
-        bool _vip,
-        uint256 _qty
-    )
+    function grantTicket(address _guest, uint256 _eventId)
         public
         payable
         eventExist(_eventId)
@@ -367,56 +415,32 @@ contract OpenEvents is OpenTicket, Pausable {
     {
         OpenEvent memory _event = openEvents[_eventId];
 
-        Ticket memory _ticket;
-
-        uint256 seat;
-
-        if (!_vip) {
-            if (_event.limited) {
-                require(_event.seats > _event.sold);
-            }
-
-            seat = _event.sold.add(1);
-            openEvents[_eventId].sold = seat;
-
-            _ticket = Ticket({
-                event_id: _eventId,
-                vip: false,
-                seat: seat,
-                image: _event.ipfs
-            });
-        } else {
-            if (_event.vipAvailable) {
-                require(_qty < _event.vipTicketSupply.sub(_event.vipSold));
-                // "Not enough VIP tickets remaining for this event."
-            }
-
-            seat = _event.sold.add(1);
-            openEvents[_eventId].sold = seat;
-
-            uint256 vipSold = _event.vipSold.add(1);
-            openEvents[_eventId].vipSold = vipSold;
-
-            _ticket = Ticket({
-                event_id: _eventId,
-                vip: true,
-                seat: seat,
-                image: _event.ipfs
-            });
+        if (_event.limited) {
+            require(_event.seats > _event.sold);
         }
+
+        uint256 seat = _event.sold.add(1);
+        openEvents[_eventId].sold = seat;
+
+        Ticket memory _ticket = Ticket({
+            event_id: _eventId,
+            vip: 0,
+            seat: seat,
+            image: _event.ipfs
+        });
 
         uint256 _ticketId = tickets.push(_ticket).sub(1);
         ticketValidity[_ticketId] = true;
         _mint(_guest, _ticketId);
-        emit SoldTicket(_guest, _eventId, _ticketId, _vip);
-        // emit MintedTicket(_guest, _eventId, _ticketId, _vip);
+        emit SoldTicket(_guest, _eventId, _ticketId, 0);
     }
+
+    // , uint256 _qty
+    // * @param _qty - Ticket quantity to mint.
 
     /**
      * @dev Function to buy ticket to specific event.
      * @param _eventId - The ID of event.
-     * @param _vip - Is ticket VIP?
-     * @param _qty - Ticket quantity to mint.
      * @notice Requires that the events exist.
      * @notice Requires that the events time is in the future.
      * @notice Requires that the contract is not paused.
@@ -424,11 +448,7 @@ contract OpenEvents is OpenTicket, Pausable {
      * @notice Reverts if ticket price is in ethereum and msg.value smaller then the ticket price.
      * @notice Reverts if ticket price is in tokens and token.transferFrom() does not return true.
      */
-    function buyTicket(
-        uint256 _eventId,
-        bool _vip,
-        uint256 _qty
-    )
+    function buyTicket(uint256 _eventId)
         public
         payable
         eventExist(_eventId)
@@ -442,78 +462,106 @@ contract OpenEvents is OpenTicket, Pausable {
 
         uint256 _ticketId;
 
-        if (!_vip) {
-            if (_event.limited) require(_event.seats > _event.sold);
+        if (_event.limited) require(_event.seats > _event.sold);
 
-            require(msg.value >= _event.price);
-            _event.owner.transfer(_event.price);
+        require(msg.value >= _event.price);
+        _event.owner.transfer(_event.price);
 
-            Ticket memory _ticket = Ticket({
-                event_id: _eventId,
-                vip: false,
-                seat: seat,
-                image: _event.ipfs
-            });
+        Ticket memory _ticket = Ticket({
+            event_id: _eventId,
+            vip: 0,
+            seat: seat,
+            image: _event.ipfs
+        });
 
-            _ticketId = tickets.push(_ticket).sub(1);
-        } else {
-            if (_event.vipAvailable) {
-                require(_qty < _event.vipTicketSupply.sub(_event.vipSold));
-                // "Not enough VIP tickets remaining for this event."
-            }
-
-            // if (!_event.token) {
-            require(msg.value >= _event.vipPrice);
-            _event.owner.transfer(_event.vipPrice);
-            // } else {
-            //  if (!ERC20(tokenAddress).transferFrom(msg.sender, _event.owner, _event.vipPrice)) {
-            // revert();
-            // }
-            // }
-
-            uint256 vipSold = _event.vipSold.add(1);
-            openEvents[_eventId].vipSold = vipSold;
-
-            Ticket memory _vipTicket = Ticket({
-                event_id: _eventId,
-                vip: true,
-                seat: seat,
-                image: _event.ipfs
-            });
-
-            _ticketId = tickets.push(_vipTicket).sub(1);
-        }
+        _ticketId = tickets.push(_ticket).sub(1);
 
         ticketValidity[_ticketId] = true;
         _mint(msg.sender, _ticketId);
-        emit SoldTicket(msg.sender, _eventId, _ticketId, _vip);
-        // emit MintedTicket(msg.sender, _eventId, _ticketId, _vip);
+        emit SoldTicket(msg.sender, _eventId, _ticketId, 0);
+    }
+
+    /**
+     * @dev Function to purchase a VIP ticket.
+     * @param _eventId - ID of event.
+     * @param _vipId - ID of VIP package.
+     * @param _qty - Quantity of VIP tickets to purchase.
+     **/
+    function buyVIPTicket(
+        uint256 _eventId,
+        uint256 _vipId,
+        uint256 _qty
+    )
+        public
+        payable
+        eventExist(_eventId)
+        eventVIPExists(_eventId, _vipId)
+        goodTime(openEvents[_eventId].time)
+        whenNotPaused
+    {
+        VIPSettings memory _vipPackage = eventVIPSettings[_eventId][_vipId];
+
+        OpenEvent memory _event = openEvents[_eventId];
+
+        require(_qty < _vipPackage.seats.sub(_vipPackage.sold));
+        // "Not enough VIP tickets remaining for this event."
+
+        require(msg.value >= _vipPackage.price);
+        _event.owner.transfer(_vipPackage.price);
+
+        uint256 seat = _vipPackage.sold.add(1);
+        eventVIPSettings[_eventId][_vipId].sold = seat;
+
+        Ticket memory _vipTicket = Ticket({
+            event_id: _eventId,
+            vip: _vipId,
+            seat: seat,
+            image: _event.ipfs
+        });
+
+        uint256 _ticketId = tickets.push(_vipTicket).sub(1);
+        _mint(msg.sender, _ticketId);
+        emit SoldTicket(msg.sender, _eventId, _ticketId, 0);
     }
 
     /**
      * @dev Function to redeem ticket to specific event.
      * @param _ticketId - The ID of ticket.
      * @param _eventId - The ID of event.
-     * @param _vip - Boolean representing the VIP status of the ticket to redeem.
      * @notice Requires that the events exist.
      * @notice Requires that the contract is not paused.
      * @notice Requires that the caller is an event admin.
      * @notice Requires that the ticket is present.
+     * @return vip uint256 - ID of the VIP package of redeemed ticket. 0 represents GA.
      */
-    function redeemTicket(
-        uint256 _ticketId,
-        uint256 _eventId,
-        bool _vip
-    )
+    function redeemTicket(uint256 _ticketId, uint256 _eventId)
         public
         eventExist(_eventId)
         whenNotPaused
         onlyEventAdmin(msg.sender, _eventId)
         validTicket(_ticketId)
-        returns (bool)
+        returns (uint256)
     {
         ticketValidity[_ticketId] = false;
-        emit RedeemedTicket(_eventId, _ticketId, _vip);
-        return _vip;
+        uint256 vip = tickets[_ticketId].vip;
+        emit RedeemedTicket(_eventId, _ticketId, vip);
+        return vip;
+    }
+
+    /**
+     * @dev Function to redeem VIP exclusive.
+     * @param _eventId - ID of event.
+     * @param _vipId - ID of event.
+     * @return bool exclusive - Boolean representing status of VIP exclusive redemption.
+     */
+    function redeemVIPExclusive(uint256 _eventId, uint256 _vipId)
+        public
+        eventExist(_eventId)
+        eventVIPExists(_eventId, _vipId)
+        returns (bool)
+    {
+        bool exclusive = eventVIPSettings[_eventId][_vipId].exclusive;
+        eventVIPSettings[_eventId][_vipId].exclusive = false;
+        return exclusive;
     }
 }

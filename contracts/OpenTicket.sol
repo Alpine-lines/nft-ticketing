@@ -12,7 +12,7 @@ contract OpenTicket is
 {
     struct Ticket {
         uint256 event_id;
-        bool vip;
+        uint256 vip;
         uint256 seat;
         string image;
     }
@@ -69,6 +69,7 @@ contract OpenTicket is
         returns (
             uint256,
             uint256,
+            uint256,
             bool,
             string memory
         )
@@ -78,6 +79,7 @@ contract OpenTicket is
         return (
             _ticket.event_id,
             _ticket.seat,
+            _ticket.vip,
             ticketValidity[_id],
             _ticket.image
         );
