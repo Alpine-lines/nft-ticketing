@@ -55,7 +55,6 @@ contract OpenEvents is OpenTicket, Pausable {
      *	- Update createEvent params.
      *	* Add promoterEventTickets mapping(address => mapping(uint => uint)). Respresenting # of guest tix a promoter can give out.
      * 	* Add eventPromoterHasNComps modifier.
-     *	- Replace existing admin frontend with dapp hosted at https://admin.jetgangbenefit.com/
      *	- Add batchRedeem and ability to read user event ticket balance before initiating variable quantity redeem in second step.
      *	  with intuitive interface and resposnive design.
      *	- Add purchase modals w/ ticket options (art work, vip settings, contact info, email opt-in).
@@ -70,7 +69,8 @@ contract OpenEvents is OpenTicket, Pausable {
      **/
 
     /**
-     *	VIP TODOs
+     *	URGENT/IMPORTANT TODOs
+     *	- Replace existing admin frontend with dapp hosted at https://admin.jetgangbenefit.com/
      *	* Add uint vipPrice and vipSold to OpenEvent struct.
      *	* Add uint vipAvailable, vipTicketSupply, to OpenEvent struct.
      *	X Add vipAvailable modifier.
@@ -80,8 +80,8 @@ contract OpenEvents is OpenTicket, Pausable {
      *	  openEvents[_eventId].
      *	* Update redeemTicket to return true if vip, false if not.
      *	* Update getEvent and getTicket accordingly.
-     *	-
-     *	-
+     *	- Accept additional donation.
+     *	- Add setters for OpenEvent struct.
      *	- Update admin frontend w/ ability to read redeemTicket ret value beyond the existing alert/toast indicating success.
      **/
 
@@ -159,12 +159,12 @@ contract OpenEvents is OpenTicket, Pausable {
      * @dev Function creates the event.
      * @param _name - The name of the event.
      * @param _time - The time of the event. Should be in the future.
-     * @param _price - The ticket price.
-     * @param _vipPrice - The VIP ticket price.
      * @param _token - If true the price will be in tokens, else the price will be in ethereum.
      * @param _limited - If true event has limited seats.
-     * @param _vipAvailable - If true event has vip available.
+     * @param _price - The ticket price.
      * @param _seats - If event has limited seats, says how much tickets can be sold.
+     * @param _vipAvailable - If true event has vip available.
+     * @param _vipPrice - The VIP ticket price.
      * @param _vipTicketSupply - If event has limited seats, says how much tickets can be sold.
      * @param _ipfs - The IPFS hash containing additional information about the event.
      * @notice Requires that the events time is in the future.
@@ -445,14 +445,8 @@ contract OpenEvents is OpenTicket, Pausable {
         if (!_vip) {
             if (_event.limited) require(_event.seats > _event.sold);
 
-            // if (!_event.token) {
             require(msg.value >= _event.price);
             _event.owner.transfer(_event.price);
-            // } else {
-            // if (!ERC20(tokenAddress).transferFrom(msg.sender, _event.owner, _event.price)) {
-            // revert();
-            // }
-            // }
 
             Ticket memory _ticket = Ticket({
                 event_id: _eventId,
