@@ -5,12 +5,13 @@ import "./OpenTicket.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 /**
  * @title OpenEvents
  * @dev It is a main contract that provides ability to create events, view information about events and buy tickets.
  */
-contract OpenEvents is OpenTicket, Pausable {
+contract OpenEvents is Ownable, OpenTicket, Pausable {
     using SafeMath for uint256;
 
     struct OpenEvent {
@@ -48,6 +49,9 @@ contract OpenEvents is OpenTicket, Pausable {
 
     mapping(address => mapping(uint256 => uint256)) internal promoterEventComps;
 
+    mapping(uint256 => uint256) public vipTickets;
+
+    uint256 public latestEvent; 
     event CreatedEvent(address indexed owner, uint256 eventId);
     event CreatedVIPPackage(uint256 eventId, uint256 vipId);
     event SoldTicket(
@@ -200,7 +204,7 @@ contract OpenEvents is OpenTicket, Pausable {
         uint256 _seats,
         bool _vipAvailable,
         string _ipfs
-    ) public goodTime(_time) whenNotPaused {
+    ) public goodTime(_time) whenNotPaused onlyOwner {
         OpenEvent memory _event = OpenEvent({
             owner: msg.sender,
             name: _name,
@@ -215,6 +219,7 @@ contract OpenEvents is OpenTicket, Pausable {
         });
         uint256 _eventId = openEvents.push(_event).sub(1);
         ownedEvents[msg.sender].push(_eventId);
+        latestEvent = _eventId;
         emit CreatedEvent(msg.sender, _eventId);
     }
 
@@ -244,6 +249,7 @@ contract OpenEvents is OpenTicket, Pausable {
         });
         eventVIPSettings[_eventId].push(_vipPackage);
         uint256 _vipId = eventVIPSettings[_eventId].length.sub(1);
+        vipTickets[_eventId] = _vipId;
         // eventVIPPackages[_eventId][
         // _vipId
         // ] = _vipPackage;
@@ -440,7 +446,7 @@ contract OpenEvents is OpenTicket, Pausable {
 
     /**
      * @dev Function to buy ticket to specific event.
-     * @param _eventId - The ID of event.
+
      * @notice Requires that the events exist.
      * @notice Requires that the events time is in the future.
      * @notice Requires that the contract is not paused.
@@ -448,27 +454,27 @@ contract OpenEvents is OpenTicket, Pausable {
      * @notice Reverts if ticket price is in ethereum and msg.value smaller then the ticket price.
      * @notice Reverts if ticket price is in tokens and token.transferFrom() does not return true.
      */
-    function buyTicket(uint256 _eventId)
+    function buyTicket()
         public
         payable
-        eventExist(_eventId)
-        goodTime(openEvents[_eventId].time)
+        eventExist(latestEvent)
+        goodTime(openEvents[latestEvent].time)
         whenNotPaused
     {
-        OpenEvent memory _event = openEvents[_eventId];
+        OpenEvent memory _event = openEvents[latestEvent];
 
         uint256 seat = _event.sold.add(1);
-        openEvents[_eventId].sold = seat;
+        openEvents[latestEvent].sold = seat;
 
         uint256 _ticketId;
 
-        if (_event.limited) require(_event.seats > _event.sold);
+        if (_event.limited) require(_event.seats > _event.sold, "Sold Out");
 
-        require(msg.value >= _event.price);
+        require(msg.value >= _event.price, "Not enough sent");
         _event.owner.transfer(_event.price);
 
         Ticket memory _ticket = Ticket({
-            event_id: _eventId,
+            event_id: latestEvent,
             vip: 0,
             seat: seat,
             image: _event.ipfs
@@ -478,30 +484,26 @@ contract OpenEvents is OpenTicket, Pausable {
 
         ticketValidity[_ticketId] = true;
         _mint(msg.sender, _ticketId);
-        emit SoldTicket(msg.sender, _eventId, _ticketId, 0);
+        emit SoldTicket(msg.sender, latestEvent, _ticketId, 0);
     }
 
     /**
      * @dev Function to purchase a VIP ticket.
-     * @param _eventId - ID of event.
-     * @param _vipId - ID of VIP package.
-     * @param _qty - Quantity of VIP tickets to purchase.
+
      **/
-    function buyVIPTicket(
-        uint256 _eventId,
-        uint256 _vipId,
-        uint256 _qty
-    )
+    function buyVIPTicket()
         public
         payable
-        eventExist(_eventId)
-        eventVIPExists(_eventId, _vipId)
-        goodTime(openEvents[_eventId].time)
+        eventExist(latestEvent)
+        eventVIPExists(latestEvent, _vipId)
+        goodTime(openEvents[latestEvent].time)
         whenNotPaused
-    {
-        VIPSettings memory _vipPackage = eventVIPSettings[_eventId][_vipId];
+    {   
+        uint256 _qty = 1;
+        uint256 _vipId = vipTickets[latestEvent];
+        VIPSettings memory _vipPackage = eventVIPSettings[latestEvent][_vipId];
 
-        OpenEvent memory _event = openEvents[_eventId];
+        OpenEvent memory _event = openEvents[latestEvent];
 
         require(_qty < _vipPackage.seats.sub(_vipPackage.sold));
         // "Not enough VIP tickets remaining for this event."
@@ -510,10 +512,10 @@ contract OpenEvents is OpenTicket, Pausable {
         _event.owner.transfer(_vipPackage.price);
 
         uint256 seat = _vipPackage.sold.add(1);
-        eventVIPSettings[_eventId][_vipId].sold = seat;
+        eventVIPSettings[latestEvent][_vipId].sold = seat;
 
         Ticket memory _vipTicket = Ticket({
-            event_id: _eventId,
+            event_id: latestEvent,
             vip: _vipId,
             seat: seat,
             image: _event.ipfs
@@ -521,7 +523,7 @@ contract OpenEvents is OpenTicket, Pausable {
 
         uint256 _ticketId = tickets.push(_vipTicket).sub(1);
         _mint(msg.sender, _ticketId);
-        emit SoldTicket(msg.sender, _eventId, _ticketId, 0);
+        emit SoldTicket(msg.sender, latestEvent, _ticketId, 0);
     }
 
     /**
