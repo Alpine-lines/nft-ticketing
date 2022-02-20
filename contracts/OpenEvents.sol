@@ -558,9 +558,13 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
         validTicket(_ticketId)
         returns (uint256)
     {
+        console.log("passed modifiers");
         ticketValidity[_ticketId] = false;
+        console.log("set validity");
         uint256 vip = tickets[_ticketId].vip;
+        console.log("checked vip");
         emit RedeemedTicket(_eventId, _ticketId, vip);
+        console.log("emit event");
         return vip;
     }
 
