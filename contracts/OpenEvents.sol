@@ -478,7 +478,7 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
         _event.owner.transfer(_qty.mul(_event.price));
 
         for (uint256 i; i < _qty; i++) {
-            uint256 seat = _ticketId.add(i).add(1);
+            uint256 seat = _ticketId.add(i);
             Ticket memory _ticket = Ticket({
                 event_id: latestEvent,
                 vip: 0,
@@ -487,9 +487,9 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
             });
 
             uint256 newId = tickets.push(_ticket).sub(1);
-            ticketValidity[seat] = true;
+            ticketValidity[newId] = true;
             _mint(msg.sender, newId);
-            emit SoldTicket(msg.sender, latestEvent, seat, 0);
+            emit SoldTicket(msg.sender, latestEvent, newId, 0);
         }
     }
 
@@ -558,9 +558,13 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
         validTicket(_ticketId)
         returns (uint256)
     {
+        console.log("passed modifiers");
         ticketValidity[_ticketId] = false;
+        console.log("set validity", _ticketId);
         uint256 vip = tickets[_ticketId].vip;
+        console.log("checked vip");
         emit RedeemedTicket(_eventId, _ticketId, vip);
+        console.log("emit event");
         return vip;
     }
 
