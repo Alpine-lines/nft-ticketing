@@ -52,7 +52,7 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
 
     mapping(uint256 => uint256) public vipTickets;
 
-    uint256 public latestEvent; 
+    uint256 public latestEvent;
     event CreatedEvent(address indexed owner, uint256 eventId);
     event CreatedVIPPackage(uint256 eventId, uint256 vipId);
     event SoldTicket(
@@ -162,7 +162,10 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
     }
 
     modifier eventVIPExists(uint256 _eventId, uint256 _vipId) {
-        require(eventVIPSettings[_eventId].length.sub(1) >= _vipId);
+        require(
+            eventVIPSettings[_eventId].length.sub(1) >= _vipId,
+            "VIP does not exist."
+        );
         _;
     }
 
@@ -221,7 +224,6 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
         uint256 _eventId = openEvents.push(_event).sub(1);
         ownedEvents[msg.sender].push(_eventId);
         latestEvent = _eventId;
-        console.log("Created");
         emit CreatedEvent(msg.sender, _eventId);
     }
 
@@ -467,12 +469,15 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
         openEvents[latestEvent].sold = seat;
         uint256 _qty = msg.value / _event.price;
         uint256 _ticketId = _event.sold;
-        if (_event.limited) require(_event.seats > _event.sold.add(_qty), "Sold Out");
+        if (_event.limited)
+            require(_event.seats > _event.sold.add(_qty), "Sold Out");
         _event.sold = _event.sold.add(_qty);
 
         require(msg.value >= _event.price.mul(_qty), "Not enough sent");
+
         _event.owner.transfer(_qty.mul(_event.price));
-        for(uint256 i; i < _qty; i++) {
+
+        for (uint256 i; i < _qty; i++) {
             uint256 seat = _ticketId.add(i).add(1);
             Ticket memory _ticket = Ticket({
                 event_id: latestEvent,
@@ -499,36 +504,40 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
         eventVIPExists(latestEvent, _vipId)
         goodTime(openEvents[latestEvent].time)
         whenNotPaused
-    {   
+    {
+        console.log("Begin");
         uint256 _vipId = vipTickets[latestEvent];
+        console.log("Feth ID");
         VIPSettings memory _vipPackage = eventVIPSettings[latestEvent][_vipId];
-        uint256 _qty = msg.value / _vipPackage.price;
+        console.log("Fetch package");
+        uint256 _qty = 8;
 
         OpenEvent memory _event = openEvents[latestEvent];
-
-        require(_qty < _vipPackage.seats.sub(_vipPackage.sold));
+        console.log("Fetch Event");
+        require(_qty < _vipPackage.seats.sub(_vipPackage.sold), "Sold out.");
         // "Not enough VIP tickets remaining for this event."
 
-        require(msg.value >= _vipPackage.price);
+        require(msg.value >= _vipPackage.price, "Not enough sent.");
+        console.log("Begin transfer");
         _event.owner.transfer(_vipPackage.price);
+        console.log("Transfer complete");
 
-        uint256 seat = _vipPackage.sold.add(1);
-        eventVIPSettings[latestEvent][_vipId].sold = seat;
+        for (uint256 i; i < _qty; i++) {
+            uint256 seat = _vipPackage.sold.add(1);
+            eventVIPSettings[latestEvent][_vipId].sold = seat;
 
-        Ticket memory _vipTicket = Ticket({
-            event_id: latestEvent,
-            vip: _vipId,
-            seat: seat,
-            image: _event.ipfs
-        });
-
-        uint256 _ticketId = tickets.push(_vipTicket).sub(1);
-        _mint(msg.sender, _ticketId);
-        //return dust
-        if( _qty.mul(_vipPackage.price) < msg.value) {
-            msg.sender.transfer(msg.value.sub(_qty.mul(_vipPackage.price)));
+            Ticket memory _vipTicket = Ticket({
+                event_id: latestEvent,
+                vip: _vipId,
+                seat: seat,
+                image: _event.ipfs
+            });
+            console.log("Ticket intialized");
+            uint256 _ticketId = tickets.push(_vipTicket).sub(1);
+            console.log("_ticketId calculated");
+            _mint(msg.sender, _ticketId);
+            emit SoldTicket(msg.sender, latestEvent, _ticketId, 0);
         }
-        emit SoldTicket(msg.sender, latestEvent, _ticketId, 0);
     }
 
     /**
