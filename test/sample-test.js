@@ -4,12 +4,12 @@ const { default: Web3 } = require("web3");
 
 describe("Mint testings", function () {
   var openEvents;
-  
+  var accounts
   beforeEach(async function() {
-
+      accounts = await hre.ethers.getSigners();
       const OpenEvents = await hre.ethers.getContractFactory("OpenEvents");
       openEvents = await OpenEvents.deploy();
-  
+      console.log(accounts[0]);
       await openEvents.deployed();
   
       console.log("OpenEvents deployed to:", openEvents.address);
@@ -38,9 +38,14 @@ describe("Mint testings", function () {
       true,
       true
     );
-
-    await openEvents.buyVIPTicket({
-      value: hre.ethers.utils.parseEther("0.33"),
+    await openEvents.addVIPPackage(
+      0,
+      hre.ethers.utils.parseEther("0.99"),
+      40,
+      0,
+      true,
+      true
+    );    
     });
   });
-});
+
