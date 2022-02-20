@@ -22,6 +22,10 @@ module.exports = {
       chainId: 1313161554,
       gasPrice: 1000000000,
     },
+    matic: {
+      url: "https://polygon-mainnet.g.alchemy.com/v2/" + process.env.ACLHEMY_KEY,
+      accounts: [privateKey],
+    }
   },
   solidity: {
     version: "0.4.24",
