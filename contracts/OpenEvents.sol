@@ -6,6 +6,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "hardhat/console.sol";
 
 /**
  * @title OpenEvents
@@ -147,7 +148,7 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
      * @param _time - Time of event.
      */
     modifier goodTime(uint256 _time) {
-        require(_time > now);
+        require(_time > now, "Bad time");
         _;
     }
 
@@ -156,7 +157,7 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
      * @param _eventId - Event ID.
      */
     modifier eventExist(uint256 _eventId) {
-        require(_eventId < openEvents.length);
+        require(_eventId < openEvents.length, "Event doesn't exist");
         _;
     }
 
@@ -220,6 +221,7 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
         uint256 _eventId = openEvents.push(_event).sub(1);
         ownedEvents[msg.sender].push(_eventId);
         latestEvent = _eventId;
+        console.log("Created");
         emit CreatedEvent(msg.sender, _eventId);
     }
 
@@ -462,29 +464,28 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
         whenNotPaused
     {
         OpenEvent memory _event = openEvents[latestEvent];
-
-        uint256 seat = _event.sold.add(1);
         openEvents[latestEvent].sold = seat;
+        uint256 _qty = msg.value / _event.price;
+        uint256 _ticketId = _event.sold;
+        if (_event.limited) require(_event.seats > _event.sold.add(_qty), "Sold Out");
+        _event.sold = _event.sold.add(_qty);
 
-        uint256 _ticketId;
+        require(msg.value >= _event.price.mul(_qty), "Not enough sent");
+        _event.owner.transfer(_qty.mul(_event.price));
+        for(uint256 i; i < _qty; i++) {
+            uint256 seat = _ticketId.add(i).add(1);
+            Ticket memory _ticket = Ticket({
+                event_id: latestEvent,
+                vip: 0,
+                seat: seat,
+                image: _event.ipfs
+            });
 
-        if (_event.limited) require(_event.seats > _event.sold, "Sold Out");
-
-        require(msg.value >= _event.price, "Not enough sent");
-        _event.owner.transfer(_event.price);
-
-        Ticket memory _ticket = Ticket({
-            event_id: latestEvent,
-            vip: 0,
-            seat: seat,
-            image: _event.ipfs
-        });
-
-        _ticketId = tickets.push(_ticket).sub(1);
-
-        ticketValidity[_ticketId] = true;
-        _mint(msg.sender, _ticketId);
-        emit SoldTicket(msg.sender, latestEvent, _ticketId, 0);
+            uint256 newId = tickets.push(_ticket).sub(1);
+            ticketValidity[seat] = true;
+            _mint(msg.sender, newId);
+            emit SoldTicket(msg.sender, latestEvent, seat, 0);
+        }
     }
 
     /**

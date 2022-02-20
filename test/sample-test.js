@@ -1,19 +1,20 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("Greeter", function () {
-  it("Should return the new greeting once it's changed", async function () {
-    const Greeter = await ethers.getContractFactory("Greeter");
-    const greeter = await Greeter.deploy("Hello, world!");
-    await greeter.deployed();
+describe("Mint testings", function () {
+  it("Mint a single token", async function () {
+    const [owner] = await ethers.getSigners();
 
-    expect(await greeter.greet()).to.equal("Hello, world!");
+    const OpenEvents = await hre.ethers.getContractFactory("OpenEvents");
+    const openEvents = await OpenEvents.deploy();
+  
+    await openEvents.deployed();
+  
+    console.log("OpenEvents deployed to:", openEvents.address);
+    await openEvents.createEvent("Jetgang", 1645323000, true, true, hre.ethers.utils.parseEther('0.1'), 200, false, '')
 
-    const setGreetingTx = await greeter.setGreeting("Hola, mundo!");
+    await openEvents.buyTicket({value:hre.ethers.utils.parseEther('0.1')})
+    await openEvents.buyTicket({value:hre.ethers.utils.parseEther('1')})
 
-    // wait until the transaction is mined
-    await setGreetingTx.wait();
-
-    expect(await greeter.greet()).to.equal("Hola, mundo!");
   });
 });
