@@ -1,9 +1,9 @@
 require("@nomiclabs/hardhat-ethers");
-require("dotenv");
+require('dotenv').config({ path: require('find-config')('.env') })
 
 const privateKey = process.env.PRIVATE_KEY;
 module.exports = {
-  defaultNetwork: "aurora",
+  defaultNetwork: "hardhat",
   networks: {
     hardhat: {},
     testnet_aurora: {
