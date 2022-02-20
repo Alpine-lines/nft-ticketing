@@ -6,7 +6,6 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "hardhat/console.sol";
 
 /**
  * @title OpenEvents
@@ -505,22 +504,16 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
         goodTime(openEvents[latestEvent].time)
         whenNotPaused
     {
-        console.log("Begin");
         uint256 _vipId = vipTickets[latestEvent];
-        console.log("Feth ID");
         VIPSettings memory _vipPackage = eventVIPSettings[latestEvent][_vipId];
-        console.log("Fetch package");
         uint256 _qty = 8;
 
         OpenEvent memory _event = openEvents[latestEvent];
-        console.log("Fetch Event");
         require(_qty < _vipPackage.seats.sub(_vipPackage.sold), "Sold out.");
         // "Not enough VIP tickets remaining for this event."
 
         require(msg.value >= _vipPackage.price, "Not enough sent.");
-        console.log("Begin transfer");
         _event.owner.transfer(_vipPackage.price);
-        console.log("Transfer complete");
 
         for (uint256 i; i < _qty; i++) {
             uint256 seat = _vipPackage.sold.add(1);
@@ -532,9 +525,7 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
                 seat: seat,
                 image: _event.ipfs
             });
-            console.log("Ticket intialized");
             uint256 _ticketId = tickets.push(_vipTicket).sub(1);
-            console.log("_ticketId calculated");
             _mint(msg.sender, _ticketId);
             emit SoldTicket(msg.sender, latestEvent, _ticketId, 0);
         }
@@ -558,13 +549,9 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
         validTicket(_ticketId)
         returns (uint256)
     {
-        console.log("passed modifiers");
         ticketValidity[_ticketId] = false;
-        console.log("set validity", _ticketId);
         uint256 vip = tickets[_ticketId].vip;
-        console.log("checked vip");
         emit RedeemedTicket(_eventId, _ticketId, vip);
-        console.log("emit event");
         return vip;
     }
 
