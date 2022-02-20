@@ -1655,7 +1655,7 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
             });
             uint256 _ticketId = tickets.push(_vipTicket).sub(1);
             _mint(msg.sender, _ticketId);
-            _setTokenURI(newId, _event.ipfs);
+            _setTokenURI(_ticketId, _event.ipfs);
             emit SoldTicket(msg.sender, latestEvent, _ticketId, 0);
         }
     }
