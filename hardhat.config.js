@@ -5,6 +5,10 @@ const privateKey = process.env.PRIVATE_KEY;
 module.exports = {
   defaultNetwork: "hardhat",
   networks: {
+    localhost: {
+      url: "http://127.0.0.1:8545"
+    },
+
     hardhat: {},
     testnet_aurora: {
       url: "https://testnet.aurora.dev",
