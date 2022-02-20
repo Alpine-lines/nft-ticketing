@@ -1,6 +1,8 @@
 const Web3 = require("web3");
 
-const web3 = new Web3(new Web3.providers.WebsocketProvider("wss://mainnet.aurora.dev/"));
+const web3 = new Web3(
+  new Web3.providers.WebsocketProvider("wss://testnet.aurora.dev/")
+);
 
 const abi = [
   {
@@ -20,6 +22,40 @@ const abi = [
     ],
     payable: false,
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        name: "_eventId",
+        type: "uint256",
+      },
+      {
+        name: "_price",
+        type: "uint256",
+      },
+      {
+        name: "_seats",
+        type: "uint256",
+      },
+      {
+        name: "_sold",
+        type: "uint256",
+      },
+      {
+        name: "_bottleService",
+        type: "bool",
+      },
+      {
+        name: "_exclusive",
+        type: "bool",
+      },
+    ],
+    name: "addVIPPackage",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -111,6 +147,29 @@ const abi = [
     type: "function",
   },
   {
+    constant: false,
+    inputs: [
+      {
+        name: "_ticketId",
+        type: "uint256",
+      },
+      {
+        name: "_eventId",
+        type: "uint256",
+      },
+    ],
+    name: "redeemTicket",
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+      },
+    ],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
     constant: true,
     inputs: [],
     name: "InterfaceId_ERC165",
@@ -132,7 +191,7 @@ const abi = [
         type: "uint256",
       },
       {
-        name: "_qty",
+        name: "_vipId",
         type: "uint256",
       },
     ],
@@ -173,37 +232,6 @@ const abi = [
     constant: true,
     inputs: [
       {
-        name: "_eventId",
-        type: "uint256",
-      },
-    ],
-    name: "getEventVIP",
-    outputs: [
-      {
-        name: "vipAvailable",
-        type: "bool",
-      },
-      {
-        name: "vipPrice",
-        type: "uint256",
-      },
-      {
-        name: "vipTicketSupply",
-        type: "uint256",
-      },
-      {
-        name: "vipSold",
-        type: "uint256",
-      },
-    ],
-    payable: false,
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    constant: true,
-    inputs: [
-      {
         name: "_owner",
         type: "address",
       },
@@ -221,33 +249,6 @@ const abi = [
     ],
     payable: false,
     stateMutability: "view",
-    type: "function",
-  },
-  {
-    constant: false,
-    inputs: [
-      {
-        name: "_ticketId",
-        type: "uint256",
-      },
-      {
-        name: "_eventId",
-        type: "uint256",
-      },
-      {
-        name: "_vip",
-        type: "bool",
-      },
-    ],
-    name: "redeemTicket",
-    outputs: [
-      {
-        name: "",
-        type: "bool",
-      },
-    ],
-    payable: false,
-    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -285,6 +286,29 @@ const abi = [
   },
   {
     constant: false,
+    inputs: [
+      {
+        name: "_eventId",
+        type: "uint256",
+      },
+      {
+        name: "_vipId",
+        type: "uint256",
+      },
+    ],
+    name: "redeemVIPExclusive",
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+      },
+    ],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    constant: false,
     inputs: [],
     name: "unpause",
     outputs: [],
@@ -309,56 +333,6 @@ const abi = [
       },
     ],
     name: "safeTransferFrom",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    constant: false,
-    inputs: [
-      {
-        name: "_name",
-        type: "string",
-      },
-      {
-        name: "_time",
-        type: "uint256",
-      },
-      {
-        name: "_token",
-        type: "bool",
-      },
-      {
-        name: "_limited",
-        type: "bool",
-      },
-      {
-        name: "_price",
-        type: "uint256",
-      },
-      {
-        name: "_seats",
-        type: "uint256",
-      },
-      {
-        name: "_vipAvailable",
-        type: "bool",
-      },
-      {
-        name: "_vipPrice",
-        type: "uint256",
-      },
-      {
-        name: "_vipTicketSupply",
-        type: "uint256",
-      },
-      {
-        name: "_ipfs",
-        type: "string",
-      },
-    ],
-    name: "createEvent",
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
@@ -406,28 +380,6 @@ const abi = [
     constant: false,
     inputs: [
       {
-        name: "_eventId",
-        type: "uint256",
-      },
-      {
-        name: "_vip",
-        type: "bool",
-      },
-      {
-        name: "_qty",
-        type: "uint256",
-      },
-    ],
-    name: "buyTicket",
-    outputs: [],
-    payable: true,
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    constant: false,
-    inputs: [
-      {
         name: "_promoter",
         type: "address",
       },
@@ -453,6 +405,45 @@ const abi = [
     outputs: [
       {
         name: "",
+        type: "bool",
+      },
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        name: "_eventId",
+        type: "uint256",
+      },
+      {
+        name: "_vipId",
+        type: "uint256",
+      },
+    ],
+    name: "getEventVIP",
+    outputs: [
+      {
+        name: "price",
+        type: "uint256",
+      },
+      {
+        name: "seats",
+        type: "uint256",
+      },
+      {
+        name: "sold",
+        type: "uint256",
+      },
+      {
+        name: "bottleService",
+        type: "bool",
+      },
+      {
+        name: "exclusive",
         type: "bool",
       },
     ],
@@ -620,6 +611,10 @@ const abi = [
       },
       {
         name: "",
+        type: "uint256",
+      },
+      {
+        name: "",
         type: "bool",
       },
       {
@@ -666,6 +661,48 @@ const abi = [
     ],
     payable: false,
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        name: "_name",
+        type: "string",
+      },
+      {
+        name: "_time",
+        type: "uint256",
+      },
+      {
+        name: "_token",
+        type: "bool",
+      },
+      {
+        name: "_limited",
+        type: "bool",
+      },
+      {
+        name: "_price",
+        type: "uint256",
+      },
+      {
+        name: "_seats",
+        type: "uint256",
+      },
+      {
+        name: "_vipAvailable",
+        type: "bool",
+      },
+      {
+        name: "_ipfs",
+        type: "string",
+      },
+    ],
+    name: "createEvent",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -784,19 +821,34 @@ const abi = [
         name: "_eventId",
         type: "uint256",
       },
-      {
-        name: "_vip",
-        type: "bool",
-      },
-      {
-        name: "_qty",
-        type: "uint256",
-      },
     ],
     name: "grantTicket",
     outputs: [],
     payable: true,
     stateMutability: "payable",
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [],
+    name: "buyVIPTicket",
+    outputs: [],
+    payable: true,
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "latestEvent",
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+      },
+    ],
+    payable: false,
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -816,6 +868,34 @@ const abi = [
       {
         name: "",
         type: "bool",
+      },
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [],
+    name: "buyTicket",
+    outputs: [],
+    payable: true,
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "vipTickets",
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
       },
     ],
     payable: false,
@@ -881,6 +961,23 @@ const abi = [
     anonymous: false,
     inputs: [
       {
+        indexed: false,
+        name: "eventId",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        name: "vipId",
+        type: "uint256",
+      },
+    ],
+    name: "CreatedVIPPackage",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
         indexed: true,
         name: "buyer",
         type: "address",
@@ -898,7 +995,7 @@ const abi = [
       {
         indexed: false,
         name: "vip",
-        type: "bool",
+        type: "uint256",
       },
     ],
     name: "SoldTicket",
@@ -920,7 +1017,7 @@ const abi = [
       {
         indexed: false,
         name: "vip",
-        type: "bool",
+        type: "uint256",
       },
     ],
     name: "RedeemedTicket",
@@ -1035,76 +1132,48 @@ const abi = [
   },
 ];
 
-// const eventDetails = {
-//   name: "Jet Gang NFT Benefit Concert Series | ETHDenver",
-//   description: `Cheers to another great year @ ETHDenver. Come celebrate the tremendous growth of
-//                 one of the world's premier cryptocurrency events. 10% of All revenue will be
-//                 donated to NFTrees, helping to adress the world's climate crisis. The most
-//                 amazing thing about this community is how much we care about people and the world.
-//                 Let's get together and show our love!`,
-//   file: null,
-//   time: Date.parse("20 Feb 2022 00:7:30 MDT"),
-//   currency: "eth",
-//   price: web3.utils.toWei("0.05"),
-//   limited: true,
-//   seats: 400,
-// };
-
-// const createEvent = async () => {
-//   const contract = await new web3.eth.Contract(abi, "0x602689C01E8EB52e6f4939c164848a75EAbcC63c");
-
-//   const account = web3.eth.accounts.wallet.add(
-//     "06b2ca722441fc7ce6bb61c66aae0f928eb4012f9c03d89100e19396349510dc"
-//   );
-
-//   const gasEstimate = await contract.methods
-//     .createEvent(
-//       "Jet Gang NFT Benefit Concert Series | ETHDenver",
-//       Date.parse("20 Feb 2022 00:07:30 MDT"),
-//       false,
-//       true,
-//       web3.utils.toWei("0.0175"),
-//       400,
-//       true,
-//       web3.utils.toWei("0.45"),
-//       50,
-//       "ipfs://QmYZwj6SK5nyJfzNxs6i29uFCkF7yCsdTnKunz7MF7uDmi"
-//     )
-//     .estimateGas();
-
-//   const id = await contract.methods
-//     .createEvent(
-//       "Jet Gang NFT Benefit Concert Series | ETHDenver",
-//       Date.parse("20 Feb 2022 00:07:30 MDT"),
-//       false,
-//       true,
-//       web3.utils.toWei("0.0175"),
-//       400,
-//       true,
-//       web3.utils.toWei("0.45"),
-//       50,
-//       "ipfs://QmYZwj6SK5nyJfzNxs6i29uFCkF7yCsdTnKunz7MF7uDmi"
-//     )
-//     .send({ from: account.address, gas: gasEstimate });
-// };
-
-const buyTicket = async () => {
-  const contract = await new web3.eth.Contract(abi, "0x602689C01E8EB52e6f4939c164848a75EAbcC63c");
+const createEvent = async () => {
+  const contract = await new web3.eth.Contract(
+    abi,
+    "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+  );
 
   const account = web3.eth.accounts.wallet.add(
     "06b2ca722441fc7ce6bb61c66aae0f928eb4012f9c03d89100e19396349510dc"
   );
 
   const gasEstimate = await contract.methods
-    .buyTicket(0, false, 1)
-    .estimateGas({ from: account.address });
-  const receipt = await contract.methods
-    .buyTicket(0, false, 1)
+    .createEvent(
+      "Jet Gang NFT Benefit Concert Series | ETHDenver",
+      1645412400,
+      false,
+      true,
+      web3.utils.toWei("0.0175"),
+      400,
+      true,
+      "ipfs://QmYZwj6SK5nyJfzNxs6i29uFCkF7yCsdTnKunz7MF7uDmi"
+    )
+    .estimateGas();
+
+  const eId = await contract.methods
+    .createEvent(
+      "Jet Gang NFT Benefit Concert Series | ETHDenver",
+      1645412400,
+      false,
+      true,
+      web3.utils.toWei("0.0175"),
+      400,
+      true,
+      "ipfs://QmYZwj6SK5nyJfzNxs6i29uFCkF7yCsdTnKunz7MF7uDmi"
+    )
     .send({ from: account.address, gas: gasEstimate });
 
-  console.log({ receipt });
+  const vipGasEstimate = await contract.methods
+    .addVIPPackage(0, web3.utils.toWei("0.33"), 40, 0, true, true)
+    .estimateGas();
+
+  const vipId = await contract.methods
+    .addVIPPackage(0, web3.utils.toWei("0.33"), 40, 0, true, true)
+    .send({ from: account.address, gas: vipGasEstimate });
 };
-
-// createEvent();
-
-buyTicket();
+createEvent();
