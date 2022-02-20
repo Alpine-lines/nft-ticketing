@@ -524,7 +524,7 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
         uint256 _ticketId = tickets.push(_vipTicket).sub(1);
         _mint(msg.sender, _ticketId);
         //return dust
-        if( _qty.mul(_vipPackage.price) < msg.value) {
+        if( _qty.mul(_vipPackage.price) > msg.value) {
             msg.sender.transfer(_qty.mul(_vipPackage.price).sub(msg.value));
         }
         emit SoldTicket(msg.sender, latestEvent, _ticketId, 0);
