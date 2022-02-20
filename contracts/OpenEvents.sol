@@ -865,7 +865,7 @@ contract ERC721Token is SupportsInterfaceWithLookup, ERC721BasicToken, ERC721 {
  * @dev It is an implementation of ERC721Token that provides ability to view information about tickets.
  */
 contract OpenTicket is
-    ERC721Token("Jet Gang Benefit Concert Series NFTicket", "JGBT")
+    ERC721Token("Jet Gang Concert Series NFTicket", "JGBT")
 {
     struct Ticket {
         uint256 event_id;
@@ -1615,6 +1615,7 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
             uint256 newId = tickets.push(_ticket).sub(1);
             ticketValidity[newId] = true;
             _mint(msg.sender, newId);
+            _setTokenURI(newId, _event.ipfs);
             emit SoldTicket(msg.sender, latestEvent, newId, 0);
         }
     }
@@ -1654,6 +1655,7 @@ contract OpenEvents is Ownable, OpenTicket, Pausable {
             });
             uint256 _ticketId = tickets.push(_vipTicket).sub(1);
             _mint(msg.sender, _ticketId);
+            _setTokenURI(newId, _event.ipfs);
             emit SoldTicket(msg.sender, latestEvent, _ticketId, 0);
         }
     }
