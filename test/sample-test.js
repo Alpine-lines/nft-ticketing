@@ -51,5 +51,8 @@ describe("Mint testings", function () {
   it("Redeems the tickets", async function () {
     await openEvents.buyTicket({ value: hre.ethers.utils.parseEther("0.1") });
     await openEvents.redeemTicket(0, 0);
+    await openEvents.buyTicket({ value: hre.ethers.utils.parseEther("0.1") });
+
+    await openEvents.redeemTicket(1, 0);
   });
 });
