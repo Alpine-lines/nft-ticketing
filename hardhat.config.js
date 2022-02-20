@@ -1,6 +1,7 @@
 require("@nomiclabs/hardhat-ethers");
-const privateKey =
-  "06b2ca722441fc7ce6bb61c66aae0f928eb4012f9c03d89100e19396349510dc";
+require("dotenv");
+
+const privateKey = process.env.PRIVATE_KEY;
 module.exports = {
   defaultNetwork: "aurora",
   networks: {
